@@ -62,7 +62,7 @@ class NetworkBlock(nn.Module):
 
 
 class WideResNet(nn.Module):
-    def __init__(self, depth, num_classes, widen_factor=1, dropRate=0.0):
+    def __init__(self, depth, num_classes, widen_factor=1, dropRate=0.0, hidden_dim = 50):
         super(WideResNet, self).__init__()
         nChannels = [16, 16 * widen_factor, 32 * widen_factor, 64 * widen_factor]
         assert ((depth - 4) % 6 == 0)
@@ -80,7 +80,9 @@ class WideResNet(nn.Module):
         # global average pooling and classifier
         self.bn1 = nn.BatchNorm2d(nChannels[3])
         self.relu = nn.ReLU(inplace=True)
-        self.fc = nn.Linear(nChannels[3], num_classes)
+        self.fc = nn.Linear(nChannels[3], hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, num_classes)
+
         self.nChannels = nChannels[3]
         self.softmax = nn.Softmax()
         for m in self.modules():
@@ -100,9 +102,20 @@ class WideResNet(nn.Module):
         out = F.avg_pool2d(out, 8)
         out = out.view(-1, self.nChannels)
         out = self.fc(out)
+        out = self.fc2(out)
         out = self.softmax(out)
         return out
-
+    def repr(self, x):
+        out = self.conv1(x)
+        out = self.block1(out)
+        out = self.block2(out)
+        out = self.block3(out)
+        out = self.relu(self.bn1(out))
+        out = F.avg_pool2d(out, 8)
+        out = out.view(-1, self.nChannels)
+        out = self.fc(out)
+        return out    
+    
     
 # simple conv network
 # (argument 2 of the first nn.Conv2d, and argument 1 of the second nn.Conv2d – they need to be the same number)
@@ -125,6 +138,14 @@ class NetSimple(nn.Module):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         x = self.softmax(x)
+        return x
+
+    def repr(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = torch.flatten(x, 1) # flatten all dimensions except batch
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
         return x
     
 class NetSimpleRaw(nn.Module):
@@ -191,6 +212,41 @@ class NetComplex(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
+        x = self.softmax(x)
+        return x
+class Linear_net_rej(nn.Module):
+    '''
+    Linear Classifier to be used for the L_CE loss
+    '''
+    def __init__(self, input_dim, out_dim):
+        super(Linear_net_rej, self).__init__()
+        # an affine operation: y = Wx + b
+        self.fc = nn.Linear(input_dim, out_dim+1)
+        self.fc_rej = nn.Linear(input_dim, 1)
+        torch.nn.init.ones_(self.fc.weight)
+        torch.nn.init.ones_(self.fc_rej.weight)
+        self.softmax = nn.Softmax()
+
+    def forward(self, x):
+        out = self.fc(x)
+        rej = self.fc_rej(x)
+        #out = torch.cat([out,rej],1)
+        out = self.softmax(out)
+        return out
+
+class Linear_net(nn.Module):
+    '''
+    Linear multiclass classifier with unit init
+    '''
+    def __init__(self, input_dim, out_dim):
+        super(Linear_net, self).__init__()
+        # an affine operation: y = Wx + b
+        self.fc1 = nn.Linear(input_dim, out_dim)
+        torch.nn.init.normal_(self.fc1.weight)
+        self.softmax = nn.Softmax()
+
+    def forward(self, x):
+        x = self.fc1(x)
         x = self.softmax(x)
         return x
 

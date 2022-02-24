@@ -67,7 +67,46 @@ def metrics_print_2step(net_mod, net_exp, expert_fn, n_classes, loader):
     return to_print
     print(to_print)
     
-    
+def metrics_print_2step_linear(net_mod, net_exp, expert_fn, n_classes, loader):
+    correct = 0
+    correct_sys = 0
+    exp = 0
+    exp_total = 0
+    total = 0
+    real_total = 0
+    with torch.no_grad():
+        for data in loader:
+            images, labels, expert_preds, _, images_orig = data
+            images, labels, expert_preds, images_orig = images.to(device), labels.to(device), expert_preds.to(device), images_orig.to(device)
+            outputs_mod = net_mod(images_orig)
+            outputs_exp = net_exp(images)
+            _, predicted = torch.max(outputs_mod.data, 1)
+            _, predicted_exp = torch.max(outputs_exp.data, 1)
+            batch_size = outputs_mod.size()[0]  # batch_size
+            exp_prediction = expert_fn(images, labels)
+            for i in range(0, batch_size):
+                r_score =  outputs_mod.data[i][predicted[i].item()].item()
+                r_score = outputs_exp.data[i][1].item() - r_score
+                r = 0
+                if r_score >= 0:
+                    r = 1
+                else:
+                    r = 0
+                if r == 0:
+                    total += 1
+                    correct += (predicted[i] == labels[i]).item()
+                    correct_sys += (predicted[i] == labels[i]).item()
+                if r == 1:
+                    exp += (exp_prediction[i] == labels[i].item())
+                    correct_sys += (exp_prediction[i] == labels[i].item())
+                    exp_total += 1
+                real_total += 1
+    cov = str(total) + str(" out of") + str(real_total)
+    to_print = {"coverage": cov, "system accuracy": 100 * correct_sys / real_total,
+                "expert accuracy": 100 * exp / (exp_total + 0.0002),
+                "classifier accuracy": 100 * correct / (total + 0.0001)}
+    return to_print
+    print(to_print)
 
 def metrics_print(net, expert_fn, n_classes, loader):
     '''

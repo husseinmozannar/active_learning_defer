@@ -216,9 +216,8 @@ def run_reject(model, n_dataset, expert_fn, epochs, alpha, train_loader, val_loa
     cudnn.benchmark = True
 
     # define loss function (criterion) and optimizer
-    optimizer = torch.optim.SGD(model.parameters(), 0.001, #0.001
-                                momentum=0.9, nesterov=True,
-                                weight_decay=5e-4)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+
 
     # cosine learning rate
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, len(train_loader) * epochs)
@@ -247,9 +246,8 @@ def run_reject_class(model, epochs, train_loader, val_loader, apply_softmax = Fa
         sum([p.data.nelement() for p in model.parameters()])))
 
     # define loss function (criterion) and optimizer
-    optimizer = torch.optim.SGD(model.parameters(), 0.001, #0.001
-                                momentum=0.9, nesterov=True,
-                                weight_decay=5e-4)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+
 
     # cosine learning rate
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, len(train_loader) * epochs)
@@ -322,10 +320,11 @@ def run_expert(model, epochs, train_loader, val_loader, apply_softmax = False):
         sum([p.data.nelement() for p in model.parameters()])))
 
     # define loss function (criterion) and optimizer
+    #optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+
     optimizer = torch.optim.SGD(model.parameters(), 0.001, #0.001
                                 momentum=0.9, nesterov=True,
                                 weight_decay=5e-4)
-
     # cosine learning rate
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, len(train_loader) * epochs)
 
@@ -337,3 +336,102 @@ def run_expert(model, epochs, train_loader, val_loader, apply_softmax = False):
     metrics_print_expert(model, val_loader)
     
     
+    
+
+
+def train_reject_pseudo(train_loader, model, optimizer, scheduler, epoch, expert_fn, n_classes, alpha):
+    """Train for one epoch on the training set with deferral"""
+    batch_time = AverageMeter()
+    losses = AverageMeter()
+    top1 = AverageMeter()
+
+    # switch to train mode
+    model.train()
+
+    end = time.time()
+    for i, (input, target, expert, _, _ ) in enumerate(train_loader):
+        target = target.to(device)
+        input = input.to(device)
+        m = expert.to(device)
+        # compute output
+        output = model(input)
+
+        # get expert  predictions and costs
+        batch_size = output.size()[0]  # batch_size
+        m2 = [1] * batch_size
+
+        m = torch.tensor(m)
+        m2 = torch.tensor(m2)
+        m = m.to(device)
+        m2 = m2.to(device)
+        # done getting expert predictions and costs 
+        # compute loss
+        criterion = nn.CrossEntropyLoss()
+        loss = reject_CrossEntropyLoss(output, m, target, m2, n_classes)
+
+        # measure accuracy and record loss
+        prec1 = accuracy(output.data, target, topk=(1,))[0]
+        losses.update(loss.data.item(), input.size(0))
+        top1.update(prec1.item(), input.size(0))
+
+        # compute gradient and do SGD step
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        scheduler.step()
+
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+
+        if i % 10 == 0:
+            print('Epoch: [{0}][{1}/{2}]\t'
+                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                  'Prec@1 {top1.val:.3f} ({top1.avg:.3f})'.format(
+                epoch, i, len(train_loader), batch_time=batch_time,
+                loss=losses, top1=top1))
+
+
+def run_reject_pseudo(model, n_dataset, expert_fn, epochs, alpha, train_loader, val_loader, best_on_val = False, epoch_freq = 10):
+    '''
+    model: WideResNet model
+    data_aug: boolean to use data augmentation in training
+    n_dataset: number of classes
+    expert_fn: expert model
+    epochs: number of epochs to train
+    alpha: alpha parameter in L_{CE}^{\alpha}
+    '''
+    # Data loading code
+   
+    # get the number of model parameters
+    print('Number of model parameters: {}'.format(
+        sum([p.data.nelement() for p in model.parameters()])))
+
+    # for training on multiple GPUs.
+    # Use CUDA_VISIBLE_DEVICES=0,1 to specify which GPUs to use
+    # model = torch.nn.DataParallel(model).cuda()
+    model = model.to(device)
+
+    # optionally resume from a checkpoint
+
+    cudnn.benchmark = True
+
+    # define loss function (criterion) and optimizer
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+
+    # cosine learning rate
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, len(train_loader) * epochs)
+    
+    best_model = copy.deepcopy(model.state_dict())
+    best_val_score = 0
+    for epoch in range(0, epochs):
+        # train for one epoch
+        train_reject_pseudo(train_loader, model, optimizer, scheduler, epoch, expert_fn, n_dataset, alpha)
+        if epoch % epoch_freq == 0:
+            score = metrics_print(model, expert_fn, n_dataset, val_loader)['system accuracy']
+            if score > best_val_score:
+                best_model = copy.deepcopy(model.state_dict())
+    if best_on_val:
+        return  best_model 
+

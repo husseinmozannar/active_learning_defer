@@ -35,13 +35,13 @@ def reject_CrossEntropyLoss(outputs, m, labels, m2, n_classes):
     rc = [n_classes] * batch_size
     outputs = -m * torch.log2(outputs[range(batch_size), rc]) - m2 * torch.log2(
         outputs[range(batch_size), labels])  
-    return torch.sum(outputs) / batch_size
+    return torch.mean(outputs)
 
 def my_CrossEntropyLoss(outputs, labels):
     # Regular Cross entropy loss
     batch_size = outputs.size()[0]  # batch_size
     outputs = - torch.log2(outputs[range(batch_size), labels])  # regular CE
-    return torch.sum(outputs) / batch_size
+    return torch.mean(outputs)
 
 
 def my_CrossEntropyLossWithSoftmax(outputs, labels):
@@ -49,7 +49,7 @@ def my_CrossEntropyLossWithSoftmax(outputs, labels):
     outputs = F.softmax(outputs)
     batch_size = outputs.size()[0]  # batch_size
     outputs = - torch.log2(outputs[range(batch_size), labels])  # regular CE
-    return torch.sum(outputs) / batch_size
+    return torch.mean(outputs)
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
