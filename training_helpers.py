@@ -28,7 +28,9 @@ import copy
 
 
 def train_reject(train_loader, model, optimizer, scheduler, epoch, expert_fn, n_classes, alpha):
-    """Train for one epoch on the training set with deferral"""
+    """
+    Train for one epoch on the training set with deferral (L_{CE} loss)
+    """
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
@@ -87,7 +89,9 @@ def train_reject(train_loader, model, optimizer, scheduler, epoch, expert_fn, n_
                 loss=losses, top1=top1))
 
 def train_reject_class(train_loader, model, optimizer, scheduler, epoch, apply_softmax):
-    """Train for one epoch on the training set without deferral"""
+    """Train for one epoch on the training set without deferral
+    apply_softmax: boolean to apply softmax, if model last layer doesn't have softmax 
+    """
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
@@ -193,12 +197,16 @@ def validate_reject(val_loader, model, epoch, expert_fn, n_classes):
 
 def run_reject(model, n_dataset, expert_fn, epochs, alpha, train_loader, val_loader, best_on_val = False, epoch_freq = 10):
     '''
-    model: WideResNet model
-    data_aug: boolean to use data augmentation in training
+    Overall helper for training to defer (this is the function to call)
+    model: WideResNet model or pytorch model
     n_dataset: number of classes
     expert_fn: expert model
     epochs: number of epochs to train
     alpha: alpha parameter in L_{CE}^{\alpha}
+    train_loader: 
+    val_loader:
+    best_on_val: whether to return the best model on the validation set
+    epoch_freq: how frequently to print metrics
     '''
     # Data loading code
    
@@ -240,6 +248,9 @@ def run_reject_class(model, epochs, train_loader, val_loader, apply_softmax = Fa
     only train classifier
     model: WideResNet model
     epochs: number of epochs to train
+    train_loader:
+    val_loader:
+    apply_softmax: apply softmax on top of model
     '''
     # get the number of model parameters
     print('Number of model parameters: {}'.format(
@@ -261,7 +272,7 @@ def run_reject_class(model, epochs, train_loader, val_loader, apply_softmax = Fa
 
             
 def train_expert_confidence(train_loader, model, optimizer, scheduler, epoch, apply_softmax):
-    """Train for one epoch on the training set without deferral"""
+    """Train for one epoch the model to predict expert agreement with label"""
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
@@ -311,8 +322,8 @@ def train_expert_confidence(train_loader, model, optimizer, scheduler, epoch, ap
 
 def run_expert(model, epochs, train_loader, val_loader, apply_softmax = False):
     '''
-    only train classifier
-    model: WideResNet model
+    train expert model to predict disagreement with label
+    model: WideResNet model or pytorch model (2 outputs)
     epochs: number of epochs to train
     '''
     # get the number of model parameters
@@ -340,7 +351,7 @@ def run_expert(model, epochs, train_loader, val_loader, apply_softmax = False):
 
 
 def train_reject_pseudo(train_loader, model, optimizer, scheduler, epoch, expert_fn, n_classes, alpha):
-    """Train for one epoch on the training set with deferral"""
+    """Train for one epoch on the training set with deferral with pseudo labels"""
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
@@ -395,12 +406,7 @@ def train_reject_pseudo(train_loader, model, optimizer, scheduler, epoch, expert
 
 def run_reject_pseudo(model, n_dataset, expert_fn, epochs, alpha, train_loader, val_loader, best_on_val = False, epoch_freq = 10):
     '''
-    model: WideResNet model
-    data_aug: boolean to use data augmentation in training
-    n_dataset: number of classes
-    expert_fn: expert model
-    epochs: number of epochs to train
-    alpha: alpha parameter in L_{CE}^{\alpha}
+    This trains the model with labeled and pseudo labeled data, same mechanics as run_reject
     '''
     # Data loading code
    

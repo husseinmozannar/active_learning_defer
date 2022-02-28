@@ -27,6 +27,14 @@ cifar_classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 def metrics_print_2step(net_mod, net_exp, expert_fn, n_classes, loader):
+    '''
+    Computes metrics for the confidence score method: on each example compare net_mod (classifier) and net_exp (expert) accuracies and defer 
+    net_mod: classifier model
+    net_exp: expert error model (pytorch)
+    expert_fn: actual synth expert
+    n_classes: number of classes
+    loader: data loader
+    '''
     correct = 0
     correct_sys = 0
     exp = 0
@@ -68,6 +76,14 @@ def metrics_print_2step(net_mod, net_exp, expert_fn, n_classes, loader):
     print(to_print)
     
 def metrics_print_2step_linear(net_mod, net_exp, expert_fn, n_classes, loader):
+    '''
+    Computes metrics for the confidence score method with linear representations
+    net_mod: classifier model
+    net_exp: expert error model (pytorch)
+    expert_fn: actual synth expert
+    n_classes: number of classes
+    loader: data loader
+    '''
     correct = 0
     correct_sys = 0
     exp = 0
@@ -110,7 +126,7 @@ def metrics_print_2step_linear(net_mod, net_exp, expert_fn, n_classes, loader):
 
 def metrics_print(net, expert_fn, n_classes, loader):
     '''
-    Computes metrics for deferal
+    Computes metrics for deferal (L_{CE} loss method)
     -----
     Arguments:
     net: model
@@ -175,6 +191,14 @@ def metrics_print(net, expert_fn, n_classes, loader):
                                                     accuracy))
     return to_print
 def metrics_print_oracle(net_class, expert_fn, expert_k, n_classes, loader):
+        '''
+    Computes metrics for Oracle method (defer when expert is correct) 
+    net_mod: classifier model
+    expert_fn: actual synth expert
+    expert_k: number of classes expert can predict
+    n_classes: number of classes
+    loader: data loader
+    '''
     correct = 0
     correct_sys = 0
     exp = 0
@@ -233,6 +257,7 @@ def metrics_print_oracle(net_class, expert_fn, expert_k, n_classes, loader):
 
 def metrics_print_classifier(model, data_loader, defer_net = False):
     '''
+    Prints metrics for classifier on label (no deferral)
     model: model
     data_loader: data loader
     defer_net: boolean to indicate if model is a deferral module (has n_classes +1 outputs)
@@ -279,6 +304,7 @@ def metrics_print_classifier(model, data_loader, defer_net = False):
                                                     
 def metrics_print_expert(model, data_loader, defer_net = False):
     '''
+    Computes metrics for expert model error prediction
     model: model
     data_loader: data loader
     '''

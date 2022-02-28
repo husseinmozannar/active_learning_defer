@@ -45,7 +45,7 @@ def my_CrossEntropyLoss(outputs, labels):
 
 
 def my_CrossEntropyLossWithSoftmax(outputs, labels):
-    # Regular Cross entropy loss
+    # Regular Cross entropy loss with outputs being logits without softmax
     outputs = F.softmax(outputs)
     batch_size = outputs.size()[0]  # batch_size
     outputs = - torch.log2(outputs[range(batch_size), labels])  # regular CE
@@ -85,14 +85,13 @@ def accuracy(output, target, topk=(1,)):
 
 
                                         
-                                                    
-
+                                              
 class synth_expert:
     '''
     simple class to describe our synthetic expert on CIFAR-10
     ----
     k: number of classes expert can predict
-    n_classes: number of classes (10+1 for CIFAR-10)
+    n_classes: number of classes (10 for CIFAR-10)
     '''
     def __init__(self, k, n_classes):
         self.k = k

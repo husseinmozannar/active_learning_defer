@@ -26,6 +26,13 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") # THIS I
 class CifarExpertDataset(Dataset):
     def __init__(self, images, targets, expert_fn, labeled, indices = None, expert_preds = None):
         """
+        Original cifar dataset
+        images: images
+        targets: labels
+        expert_fn: expert function
+        labeled: indicator array if images is labeled
+        indices: indices in original CIFAR dataset (if this subset is subsampled)
+        expert_preds: used if expert_fn or have different expert model
         """
         self.images = images
         self.targets = np.array(targets)
@@ -63,6 +70,13 @@ class CifarExpertDataset(Dataset):
 class CifarExpertDatasetLinear(Dataset):
     def __init__(self, images, targets, expert_fn, labeled,  indices = None, model = None):
         """
+        Original cifar dataset
+        images: images
+        targets: labels
+        expert_fn: expert function
+        labeled: indicator array if images is labeled
+        indices: indices in original CIFAR dataset (if this subset is subsampled)
+        model: model that maps images to a vector representation
         """
         self.images = images
         self.targets = np.array(targets)

@@ -22,6 +22,9 @@ import matplotlib.pyplot as plt
 
 
 class BasicBlock(nn.Module):
+    '''
+    Block for WideResNet
+    '''
     def __init__(self, in_planes, out_planes, stride, dropRate=0.0):
         super(BasicBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(in_planes)
@@ -62,6 +65,11 @@ class NetworkBlock(nn.Module):
 
 
 class WideResNet(nn.Module):
+    '''
+    complex CNN model, gets 90% accuracy on CIFAR-10 without data-aug and 96% with
+    here is how to create it: WideResNet(28, n_dataset + 1, 4, dropRate=0, hiden_dim) where hidden_dim is the dimension of the last layer
+    the repr function extracts the last layer representation
+    '''
     def __init__(self, depth, num_classes, widen_factor=1, dropRate=0.0, hidden_dim = 50):
         super(WideResNet, self).__init__()
         nChannels = [16, 16 * widen_factor, 32 * widen_factor, 64 * widen_factor]
@@ -120,6 +128,11 @@ class WideResNet(nn.Module):
 # simple conv network
 # (argument 2 of the first nn.Conv2d, and argument 1 of the second nn.Conv2d – they need to be the same number)
 class NetSimple(nn.Module):
+    '''
+    Simple 2 layer CNN with fully connected relu layers
+    NetSimple(n_dataset) instantiates one such model
+    with paramters to the max, this can get close to 80% accuracy
+    '''
     def __init__(self, num_classes, width1 = 6, width2 = 16,ff_units1 = 120, ff_units2 = 84):
         super().__init__()
         self.conv1 = nn.Conv2d(3, width1, 5)
@@ -149,6 +162,9 @@ class NetSimple(nn.Module):
         return x
     
 class NetSimpleRaw(nn.Module):
+    '''
+    same as NetSimple but without softmax 
+    '''
     def __init__(self, num_classes, width1 = 6, width2 = 16,ff_units1 = 120, ff_units2 = 84):
         super().__init__()
         self.conv1 = nn.Conv2d(3, width1, 5)
@@ -169,6 +185,9 @@ class NetSimpleRaw(nn.Module):
 
     
 class NetSimpleRejector(nn.Module):
+    '''
+    Super model for L_{CE} loss that combines two NetSimple classifiers
+    '''
     def __init__(self, params_h, params_r):
         super().__init__()
         self.net_h = NetSimpleRaw(*params_h)
